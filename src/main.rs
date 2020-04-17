@@ -27,7 +27,7 @@ fn main() {
     let client = ClientBuilder::new()
         .build()
         .expect("Failed to create ZeroMQ client");
-    let addr: TcpAddr = "192.168.0.201:32968".try_into().expect("Failed to parse IP address");
+    let addr: TcpAddr = "localhost:32968".try_into().expect("Failed to parse IP address");
     client.connect(addr).expect("Failed to connect to ZeroMQ host");
     client.set_recv_timeout(Period::Finite(Duration::from_secs(2))).expect("Failed to set timeout");
 
