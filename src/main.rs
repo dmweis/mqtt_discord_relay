@@ -1,7 +1,7 @@
 use libzmq::{prelude::*, ClientBuilder, TcpAddr, Period};
 use std::convert::TryInto;
 use serde::{Serialize, Deserialize};
-use rumqtt::{MqttClient, MqttOptions, QoS, Notification};
+use rumqtt::{MqttClient, MqttOptions, QoS, Notification, mqttoptions::ReconnectOptions};
 use std::str;
 use log::*;
 use simplelog::*;
@@ -31,7 +31,8 @@ fn main() {
     client.connect(addr).expect("Failed to connect to ZeroMQ host");
     client.set_recv_timeout(Period::Finite(Duration::from_secs(2))).expect("Failed to set timeout");
 
-    let mqtt_options = MqttOptions::new("mqtt_discord_bridge", "mqtt.local", 1883);
+    let mqtt_options = MqttOptions::new("mqtt_discord_bridge", "mqtt.local", 1883)
+        .set_reconnect_opts(mqttoptions::ReconnectOptions::Always(5));
     let (mut mqtt_client, notifications) = MqttClient::start(mqtt_options).expect("Failed to connect to MQTT host");
     mqtt_client.subscribe("hopper/telemetry/voltage", QoS::AtMostOnce).expect("Failed to subscribe to topic");
     mqtt_client.subscribe("discord/send/general", QoS::AtMostOnce).expect("Failed to subscribe to topic");
@@ -98,6 +99,10 @@ fn main() {
                     warn!("Unknown topic")
                 }
             }
+        } else if let Notification::Disconnection = notification {
+            warn!("Client disconnected from MQTT");
+        } else if let Notification::Reconnection = notification {
+            warn!("Client reconnected to MQTT");
         }
     }
 
