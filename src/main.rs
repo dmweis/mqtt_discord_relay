@@ -1,7 +1,7 @@
 use libzmq::{prelude::*, ClientBuilder, TcpAddr, Period};
 use std::convert::TryInto;
 use serde::{Serialize, Deserialize};
-use rumqtt::{MqttClient, MqttOptions, QoS, Notification, mqttoptions::ReconnectOptions};
+use rumqtt::{MqttClient, MqttOptions, QoS, Notification, ReconnectOptions};
 use std::str;
 use log::*;
 use simplelog::*;
@@ -32,7 +32,7 @@ fn main() {
     client.set_recv_timeout(Period::Finite(Duration::from_secs(2))).expect("Failed to set timeout");
 
     let mqtt_options = MqttOptions::new("mqtt_discord_bridge", "mqtt.local", 1883)
-        .set_reconnect_opts(mqttoptions::ReconnectOptions::Always(5));
+        .set_reconnect_opts(ReconnectOptions::Always(5));
     let (mut mqtt_client, notifications) = MqttClient::start(mqtt_options).expect("Failed to connect to MQTT host");
     mqtt_client.subscribe("hopper/telemetry/voltage", QoS::AtMostOnce).expect("Failed to subscribe to topic");
     mqtt_client.subscribe("discord/send/general", QoS::AtMostOnce).expect("Failed to subscribe to topic");
