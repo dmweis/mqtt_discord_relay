@@ -102,6 +102,8 @@ fn main() {
         } else if let Notification::Disconnection = notification {
             warn!("Client disconnected from MQTT");
         } else if let Notification::Reconnection = notification {
+            mqtt_client.subscribe("hopper/telemetry/voltage", QoS::AtMostOnce).expect("Failed to subscribe to topic");
+            mqtt_client.subscribe("discord/send/general", QoS::AtMostOnce).expect("Failed to subscribe to topic");
             warn!("Client reconnected to MQTT");
         }
     }
