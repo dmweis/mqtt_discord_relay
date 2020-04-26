@@ -1,4 +1,4 @@
-use libzmq::{prelude::*, ClientBuilder, TcpAddr, Period};
+use libzmq::{prelude::*, ClientBuilder, TcpAddr, Period, Client};
 use std::convert::TryInto;
 use serde::{Serialize, Deserialize};
 use rumqtt::{MqttClient, MqttOptions, QoS, Notification, ReconnectOptions};
@@ -11,6 +11,24 @@ use std::time::Duration;
 struct SendMessage {
     channel_id: u64,
     content: String
+}
+
+fn send_to_discord(zmq_client: &Client, channel_id: u64, text: String) {
+    let message = SendMessage {
+        channel_id: channel_id,
+        content: text,
+    };
+    if let Ok(payload) = serde_json::to_string(&message) {
+        if zmq_client.send(payload).is_ok() {
+            if zmq_client.recv_msg().is_ok() {
+                trace!("Bridge responded");
+            } else {
+                error!("No response from bridge");
+            }
+        }
+    } else {
+        error!("Failed to serialize message to JSON");
+    }
 }
 
 fn main() {
@@ -47,23 +65,7 @@ fn main() {
             match data.topic_name.as_str() {
                 "discord/send/general" => {
                     if let Ok(message_text) = str::from_utf8(&data.payload) {
-                        let message = SendMessage {
-                            channel_id: general_channel_id,
-                            content: message_text.to_owned(),
-                        };
-        
-                        if let Ok(payload) = serde_json::to_string(&message) {
-                            if client.send(payload).is_ok() {
-                                if client.recv_msg().is_ok() {
-                                    trace!("Bridge responded");
-                                } else {
-                                    error!("No response from bridge");
-                                }
-                            }
-                        } else {
-                            error!("Failed to serialize message to JSON");
-        
-                        }
+                        send_to_discord(&client, general_channel_id, message_text.to_owned());
                     } else {
                         error!("Failed to parse MQTT payload");
                     }
@@ -73,23 +75,10 @@ fn main() {
                         if let Ok(voltage) = message_text.parse::<f32>() {
                             if voltage < warning_voltage && !warning_sent {
                                 warning_sent = true;
-                                let message = SendMessage {
-                                    channel_id: hopper_channel_id,
-                                    content: format!("Voltage low: {}", message_text),
-                                };
-                                if let Ok(payload) = serde_json::to_string(&message) {
-                                    if client.send(payload).is_ok() {
-                                        if client.recv_msg().is_ok() {
-                                            trace!("Bridge responded");
-                                        } else {
-                                            error!("No response from bridge");
-                                        }
-                                    }
-                                } else {
-                                    error!("Failed to serialize message to JSON");
-                                }
+                                send_to_discord(&client, hopper_channel_id, format!("Voltage low: {}", voltage));
                             }
                             if voltage > warning_voltage {
+                                send_to_discord(&client, hopper_channel_id, format!("Voltage good: {}", voltage));
                                 warning_sent = false;
                             }
                         }
