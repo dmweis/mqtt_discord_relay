@@ -36,8 +36,10 @@ fn main() {
     let (mut mqtt_client, notifications) = MqttClient::start(mqtt_options).expect("Failed to connect to MQTT host");
     mqtt_client.subscribe("hopper/telemetry/voltage", QoS::AtMostOnce).expect("Failed to subscribe to topic");
     mqtt_client.subscribe("discord/send/general", QoS::AtMostOnce).expect("Failed to subscribe to topic");
+    mqtt_client.subscribe("hopper/telemetry/warning_voltage", QoS::AtMostOnce).expect("Failed to subscribe to topic");
 
     let mut warning_sent = false;
+    let mut warning_voltage = 10.5;
 
     for notification in notifications {
         if let Notification::Publish(data) = notification {
@@ -69,7 +71,7 @@ fn main() {
                 "hopper/telemetry/voltage" => {
                     if let Ok(message_text) = str::from_utf8(&data.payload) {
                         if let Ok(voltage) = message_text.parse::<f32>() {
-                            if voltage < 10.3 && !warning_sent {
+                            if voltage < warning_voltage && !warning_sent {
                                 warning_sent = true;
                                 let message = SendMessage {
                                     channel_id: hopper_channel_id,
@@ -87,7 +89,7 @@ fn main() {
                                     error!("Failed to serialize message to JSON");
                                 }
                             }
-                            if voltage > 10.3 {
+                            if voltage > warning_voltage {
                                 warning_sent = false;
                             }
                         }
@@ -95,6 +97,14 @@ fn main() {
                         error!("Failed to parse MQTT payload");
                     }
                 },
+                "hopper/telemetry/warning_voltage" => {
+                    if let Ok(message_text) = str::from_utf8(&data.payload) {
+                        if let Ok(voltage) = message_text.parse::<f32>() {
+                            warning_voltage = voltage;
+                            info!("Set new warning voltage of {}", voltage);
+                        }
+                    }
+                }
                 _ => {
                     warn!("Unknown topic")
                 }
@@ -104,6 +114,7 @@ fn main() {
         } else if let Notification::Reconnection = notification {
             mqtt_client.subscribe("hopper/telemetry/voltage", QoS::AtMostOnce).expect("Failed to subscribe to topic");
             mqtt_client.subscribe("discord/send/general", QoS::AtMostOnce).expect("Failed to subscribe to topic");
+            mqtt_client.subscribe("hopper/telemetry/warning_voltage", QoS::AtMostOnce).expect("Failed to subscribe to topic");
             warn!("Client reconnected to MQTT");
         }
     }
