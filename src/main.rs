@@ -78,7 +78,9 @@ fn main() {
                                 send_to_discord(&client, hopper_channel_id, format!("Voltage low: {}", voltage));
                             }
                             if voltage > warning_voltage {
-                                send_to_discord(&client, hopper_channel_id, format!("Voltage good: {}", voltage));
+                                if warning_sent {
+                                    send_to_discord(&client, hopper_channel_id, format!("Voltage good: {}", voltage));
+                                }
                                 warning_sent = false;
                             }
                         }
