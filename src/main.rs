@@ -1,4 +1,4 @@
-use libzmq::{prelude::*, ClientBuilder, TcpAddr, Period, Client, Heartbeat};
+use libzmq::{prelude::*, ClientBuilder, TcpAddr, Client};
 use std::convert::TryInto;
 use serde::{Serialize, Deserialize};
 use rumqtt::{MqttClient, MqttOptions, QoS, Notification, ReconnectOptions};
