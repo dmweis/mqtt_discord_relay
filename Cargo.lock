@@ -515,6 +515,7 @@ version = "0.1.0"
 dependencies = [
  "libzmq",
  "log",
+ "rand 0.7.3",
  "rumqtt",
  "serde",
  "serde_json",
